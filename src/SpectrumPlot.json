@@ -1,0 +1,14 @@
+{
+	"description" : "Plot one or more vdat files containing Raman or PL spectra.",
+	"arguments"   : [
+		{
+			"names" : ["-i", "--input"],
+			"spec"  : {
+				"dest"     : "inputs",
+				"nargs"    : "+",
+				"required" : true,
+				"help"     : "The input file (or input files) to load. Wildcards are valid."
+			}
+		}
+	]
+}
