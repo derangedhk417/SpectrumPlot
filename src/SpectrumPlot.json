@@ -9,6 +9,88 @@
 				"required" : true,
 				"help"     : "The input file (or input files) to load. Wildcards are valid."
 			}
+		},
+		{
+			"names" : ["-t", "--title"],
+			"spec"  : {
+				"dest"     : "title",
+				"default"  : "Spectrum",
+				"help"     : "The title to put on the plot"
+			}
+		},
+		{
+			"names" : ["-n", "--normalize"],
+			"spec"  : {
+				"dest"     : "normalize",
+				"action"   : "store_true",
+				"help"     : "Normalize the plots before displaying them."
+			}
+		},
+		{
+			"names" : ["-l", "--label-fields"],
+			"spec"  : {
+				"dest"     : "label_fields",
+				"nargs"    : "+",
+				"type"     : "str",
+				"default"  : [],
+				"help"     : "The field in the file header to use when labelling multiple series."
+			}
+		},
+		{
+			"names" : ["-o", "--offset"],
+			"spec"  : {
+				"dest"     : "offset",
+				"type"     : "float",
+				"default"  : 0,
+				"help"     : "Offset the plots from eachother by this much."
+			}
+		},
+		{
+			"names" : ["-p", "--peaks"],
+			"spec"  : {
+				"dest"     : "peaks",
+				"nargs"    : "+",
+				"type"     : "float",
+				"default"  : [],
+				"help"     : "Locations of peaks to label."
+			}
+		},
+		{
+			"names" : ["-b", "--labels"],
+			"spec"  : {
+				"dest"     : "labels",
+				"nargs"    : "+",
+				"type"     : "str",
+				"default"  : [],
+				"help"     : "The label to give to each peak. If left unspecified, this will be the peak location."
+			}
+		},
+		{
+			"names" : ["-c", "--correct-cosmics"],
+			"spec"  : {
+				"dest"     : "correct_cosmics",
+				"action"   : "store_true",
+				"help"     : "Whether or not to attempt to remove cosmics from the plot."
+			}
+		},
+		{
+			"names" : ["-d", "--prominence-divisor"],
+			"spec"  : {
+				"dest"     : "prominence_divisor",
+				"type"     : "float",
+				"default"  : 20,
+				"help"     : "When attempting to detect cosmics, the range of the data will be divided by this to get the minimum \"prominence\" parameter given to the peak detection algorithm. Default is 20."
+			}
+		},
+		{
+			"names" : ["-m", "--manual-cosmics"],
+			"spec"  : {
+				"dest"     : "manual_cosmics",
+				"nargs"    : "+",
+				"type"     : "float",
+				"default"  : [],
+				"help"     : "Specify sets of three values corresponding to ranges that contain cosmics that need to be removed. The first value should be the index of the dataseries to remove the cosmic from (files are sorted alphabetically before assigning indices), the second and third should be the min and max wavenumber values respectively."
+			}
 		}
 	]
 }
