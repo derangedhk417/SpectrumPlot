@@ -7,6 +7,7 @@ from datetime        import datetime
 from glob            import glob
 from scipy.integrate import trapz
 from scipy.signal    import find_peaks
+from scipy.ndimage   import gaussian_filter
 
 import numpy             as np
 import matplotlib.pyplot as plt
@@ -50,6 +51,42 @@ class VDATFile:
 	def parseData(self):
 		self.data = [list(map(float, line.split('\t'))) for line in self.lines[5:]]
 
+class RRUFFFile:
+	def __init__(self, path):
+		with open(path, 'r') as file:
+			self.raw_text = file.read()
+
+		self.raw_text.replace('\r', '')
+		self.lines = self.raw_text.split("\n")
+		self.lines = [l for l in self.lines if l.strip() != '']
+
+		self.parseData()
+
+	def parseData(self):
+		data = [list(map(float, line.split(','))) for line in self.lines[12:-1]]
+		data = np.array(data)
+		self.data = np.zeros((len(data), 3))
+		self.data[:, 1] = data[:, 0]
+		self.data[:, 2] = data[:, 1]
+
+class CSVFile:
+	def __init__(self, path):
+		with open(path, 'r') as file:
+			self.raw_text = file.read()
+
+		self.raw_text.replace('\r', '')
+		self.lines = self.raw_text.split("\n")
+		self.lines = [l for l in self.lines if l.strip() != '']
+
+		self.parseData()
+
+	def parseData(self):
+		data = [list(map(float, line.split(','))) for line in self.lines[1:]]
+		data = np.array(data)
+		self.data = np.zeros((len(data), 3))
+		self.data[:, 1] = data[:, 1]
+		self.data[:, 2] = data[:, 0]
+
 
 # Process the command line arguments supplied to the program. These will be 
 # in the json file named "SpectrumPlot.py"
@@ -88,9 +125,21 @@ if __name__ == '__main__':
 	dataset = []
 	vdat    = []
 	for file in files:
-		v = VDATFile(file)
-		vdat.append(v)
+		# Figure out the extension and us the appropriate loader.
+		ext = file.split('.')[-1].lower()
+		if ext == 'vdat':
+			v = VDATFile(file)
+			vdat.append(v)
+		elif ext == 'rruff':
+			v = RRUFFFile(file)
+		elif ext == 'csv':
+			v = CSVFile(file)
+		else:
+			print("Unrecognized file extension %s"%ext)
+			exit()
+
 		dataset.append(np.array(v.data))
+
 
 	# Calculate the max value across the entire spectrum so we can scale 
 	# label locations appropriately.
@@ -200,24 +249,40 @@ if __name__ == '__main__':
 					dataset[idx][correction_idx, 2] = left_point + (x - left_x) * slope
 					correction_idx += 1
 
+	if args.gaussian_convolve != 0.0:
+		for idx, data in enumerate(dataset):
+			dataset[idx][:, 2] = gaussian_filter(dataset[idx][:, 2], args.gaussian_convolve)
+
 	plots = []
 	for data in dataset:
 		pl, = ax.plot(data[:, 1], data[:, 2])
 		plots.append(pl)
 
 	# Label each series based on the specified field in the file header.
-	if args.label_fields != []:
-		labels = []
-		for v in vdat:
-			l = []
-			for field in args.label_fields:
-				l.append(str(v.fields[field]))
-			labels.append(" / ".join(l))
-
+	if args.manual_labels != []:
 		ax.legend(
-			plots,
-			labels
-		)
+				plots,
+				args.manual_labels
+			)
+	else:
+		if args.label_fields != []:
+			labels = []
+			for v in vdat:
+				l = []
+				for field in args.label_fields:
+					l.append(str(v.fields[field]))
+				labels.append(" / ".join(l))
+
+			ax.legend(
+				plots,
+				labels
+			)
+		else:
+			labels = [f.split('/')[-1] for f in files]
+			ax.legend(
+				plots,
+				labels
+			)
 
 	# Draw peak labels as requested.
 	if args.peaks != []:
@@ -238,7 +303,7 @@ if __name__ == '__main__':
 						if c > highest:
 							highest = c
 
-			ax.text(peak + 2, highest + (_range / 5), labels[idx])
+			ax.text(peak + 2, highest + (_range / 50), labels[idx])
 
 	
 

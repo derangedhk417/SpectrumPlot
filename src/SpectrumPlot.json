@@ -37,6 +37,16 @@
 			}
 		},
 		{
+			"names" : ["-L", "--manual-labels"],
+			"spec"  : {
+				"dest"     : "manual_labels",
+				"nargs"    : "+",
+				"type"     : "str",
+				"default"  : [],
+				"help"     : "What to label each file as, in order."
+			}
+		},
+		{
 			"names" : ["-o", "--offset"],
 			"spec"  : {
 				"dest"     : "offset",
@@ -90,6 +100,15 @@
 				"type"     : "float",
 				"default"  : [],
 				"help"     : "Specify sets of three values corresponding to ranges that contain cosmics that need to be removed. The first value should be the index of the dataseries to remove the cosmic from (files are sorted alphabetically before assigning indices), the second and third should be the min and max wavenumber values respectively."
+			}
+		},
+		{
+			"names" : ["-g", "--gaussian-convolve"],
+			"spec"  : {
+				"dest"     : "gaussian_convolve",
+				"type"     : "float",
+				"default"  : 0.0,
+				"help"     : "Convolve the data with a gaussian with this sigma in order to smooth it."
 			}
 		}
 	]
