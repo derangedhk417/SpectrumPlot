@@ -11,6 +11,22 @@
 			}
 		},
 		{
+			"names" : ["-G", "--background-file"],
+			"spec"  : {
+				"dest"     : "background_file",
+				"default"  : "",
+				"help"     : "File containing values to be elementwise subtracted from all plots."
+			}
+		},
+		{
+			"names" : ["-PL", "--photoluminescence"],
+			"spec"  : {
+				"dest"     : "PL",
+				"action"   : "store_true",
+				"help"     : "Use PL units on the x-axis."
+			}
+		},
+		{
 			"names" : ["-t", "--title"],
 			"spec"  : {
 				"dest"     : "title",

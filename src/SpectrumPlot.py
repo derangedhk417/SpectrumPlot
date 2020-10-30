@@ -16,6 +16,9 @@ import argparse
 import code
 import json
 
+hc  = 1.986445e-25
+jte = 6.242e18
+
 # Parses a vdat file and extracts the timestamp, header values and
 # data. The data is stored in VDATfile.data, where the columns are
 #
@@ -87,7 +90,6 @@ class CSVFile:
 		self.data[:, 1] = data[:, 1]
 		self.data[:, 2] = data[:, 0]
 
-
 # Process the command line arguments supplied to the program. These will be 
 # in the json file named "SpectrumPlot.py"
 def preprocess(args_specification):
@@ -121,6 +123,22 @@ if __name__ == '__main__':
 
 	files = sorted(files)
 
+	background = None
+	if args.background_file != "":
+		file = glob(args.background_file)[0]
+		ext = file.split('.')[-1].lower()
+		if ext == 'vdat':
+			v = VDATFile(file)
+		elif ext == 'rruff':
+			v = RRUFFFile(file)
+		elif ext == 'csv':
+			v = CSVFile(file)
+		else:
+			print("Unrecognized file extension %s"%ext)
+			exit()
+		
+		background = np.array(v.data)
+	
 	# Load the files into a vdat data structure.
 	dataset = []
 	vdat    = []
@@ -138,7 +156,11 @@ if __name__ == '__main__':
 			print("Unrecognized file extension %s"%ext)
 			exit()
 
-		dataset.append(np.array(v.data))
+		d = np.array(v.data)
+		if background is not None and not args.normalize:
+			d[:, 2] -= background[:, 2]
+		
+		dataset.append(d)
 
 
 	# Calculate the max value across the entire spectrum so we can scale 
@@ -207,9 +229,15 @@ if __name__ == '__main__':
 
 	# Normalize the data if requested.
 	if args.normalize:
+		if background is not None:
+			bg_integral = trapz(background[:, 2], background[:, 1])
+			background[:, 2] = background[:, 2] / bg_integral
 		for idx, data in enumerate(dataset):
 			integral = trapz(data[:, 2], data[:, 1])
 			dataset[idx][:, 2] = dataset[idx][:, 2] / integral
+			
+			if background is not None:
+				dataset[idx][:, 2] -= background[:, 2]
 
 
 	fig, ax = plt.subplots(1, 1)
@@ -253,6 +281,10 @@ if __name__ == '__main__':
 		for idx, data in enumerate(dataset):
 			dataset[idx][:, 2] = gaussian_filter(dataset[idx][:, 2], args.gaussian_convolve)
 
+	if args.PL:
+		for data in dataset:
+			data[:, 1] = jte * (hc / data[:, 0])
+			
 	plots = []
 	for data in dataset:
 		pl, = ax.plot(data[:, 1], data[:, 2])
@@ -323,7 +355,10 @@ if __name__ == '__main__':
 	#code.interact(local=locals())
 
 
-	ax.set_xlabel(r"Relative Wavenumber [$cm^{-1}$]")
+	if args.PL:
+		ax.set_xlabel(r"Energy [$eV$]")
+	else:
+		ax.set_xlabel(r"Relative Wavenumber [$cm^{-1}$]")
 	if args.normalize:
 		ax.set_ylabel(r"Arbitrary Units")
 	else:
