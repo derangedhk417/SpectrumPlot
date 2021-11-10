@@ -8,6 +8,7 @@ from glob            import glob
 from scipy.integrate import trapz
 from scipy.signal    import find_peaks
 from scipy.ndimage   import gaussian_filter
+from scipy.interpolate import interp1d
 
 import numpy             as np
 import matplotlib.pyplot as plt
@@ -138,11 +139,50 @@ if __name__ == '__main__':
 			exit()
 		
 		background = np.array(v.data)
+		background[:, 2] -= background[:, 2].min()
+
+		n_x        = background.shape[0] * 4
+		laser_line = float(v.fields["Laser Wavelength (nm)"])
+		laser_cm   = 1 / (laser_line * 1e-7)
+
+		# We're going to interpolate the data and quadruple the resolution
+		# in order to make any offsets applied later look right.
+		interp_nm = interp1d(background[:, 0], background[:, 2], kind="cubic")
+		background_nm_new = np.linspace(background[0, 0], background[-1, 0], n_x)
+		background_cm_new = laser_cm - (1 / (background_nm_new * 1e-7)) 
+
+		background = np.stack([
+			background_nm_new,
+			background_cm_new,
+			interp_nm(background_nm_new)
+		], axis=1)
+
+
+	if background is not None:
+		background[:, 2] = background[:, 2] / args.background_normalization
+
+	if args.background_offset != 0:
+		# In order to apply a horizontal offset correctly we'll have to interpolate the data.
+
+		if args.PL or args.NM:
+			# Shift by the nanometer
+			input_dim = 0
+		else:
+			# Shift by the inverse centimeter
+			input_dim = 1
+
+		interp = interp1d(background[:, input_dim], background[:, 2], kind="linear")
+
+		x_values  = background[:, input_dim]
+		x_shifted = x_values - args.background_offset
+		for idx, x_val in enumerate(x_shifted):
+			if x_val >= x_values[0] and x_val <= x_values[-1]:
+				background[idx, 2] = interp(x_val)
 	
 	# Load the files into a vdat data structure.
 	dataset = []
 	vdat    = []
-	for file in files:
+	for idx, file in enumerate(files):
 		# Figure out the extension and us the appropriate loader.
 		ext = file.split('.')[-1].lower()
 		if ext == 'vdat':
@@ -157,6 +197,48 @@ if __name__ == '__main__':
 			exit()
 
 		d = np.array(v.data)
+		d[:, 2] -= d[:, 2].min()
+
+
+		n_x        = d.shape[0] * 4
+		laser_line = float(v.fields["Laser Wavelength (nm)"])
+		laser_cm   = 1 / (laser_line * 1e-7)
+
+		# We're going to interpolate the data and quadruple the resolution
+		# in order to make any offsets applied later look right.
+		interp_nm = interp1d(d[:, 0], d[:, 2], kind="cubic")
+		d_nm_new = np.linspace(d[0, 0], d[-1, 0], n_x)
+		d_cm_new = laser_cm - (1 / (d_nm_new * 1e-7)) 
+
+		d = np.stack([
+			d_nm_new,
+			d_cm_new,
+			interp_nm(d_nm_new)
+		], axis=1)
+
+
+		# Apply x-offsets
+		if args.x_offsets != []:
+			if args.PL or args.NM:
+				# Shift by the nanometer
+				input_dim = 0
+			else:
+				# Shift by the inverse centimeter
+				input_dim = 1
+
+			interp = interp1d(d[:, input_dim], d[:, 2], kind="linear")
+
+			x_values  = d[:, input_dim]
+			x_shifted = x_values - args.x_offsets[idx]
+			for i, x_val in enumerate(x_shifted):
+				if x_val >= x_values[0] and x_val <= x_values[-1]:
+					d[i, 2] = interp(x_val)
+
+		# Apply manual normalization constants
+		if args.manual_normalizations != []:
+			d[:, 2] = d[:, 2] / args.manual_normalizations[idx]
+
+		
 		if background is not None and not args.normalize:
 			d[:, 2] -= background[:, 2]
 		
@@ -283,7 +365,10 @@ if __name__ == '__main__':
 
 	if args.PL:
 		for data in dataset:
-			data[:, 1] = jte * (hc / data[:, 0])
+			data[:, 1] = jte * (hc / data[:, 0]) * 1e9
+	elif args.NM:
+		for data in dataset:
+			data[:, 1] = data[:, 0]
 			
 	plots = []
 	for data in dataset:
@@ -357,6 +442,8 @@ if __name__ == '__main__':
 
 	if args.PL:
 		ax.set_xlabel(r"Energy [$eV$]")
+	elif args.NM:
+		ax.set_xlabel(r"Wavelength [$nm$]")
 	else:
 		ax.set_xlabel(r"Relative Wavenumber [$cm^{-1}$]")
 	if args.normalize:

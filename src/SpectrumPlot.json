@@ -19,11 +19,57 @@
 			}
 		},
 		{
+			"names" : ["-Gn", "--background-normalization"],
+			"spec"  : {
+				"dest"     : "background_normalization",
+				"type"     : "float",
+				"default"  : 1.0,
+				"help"     : "Constant to divide the background by before subtraction."
+			}
+		},
+		{
+			"names" : ["-Go", "--background-offset"],
+			"spec"  : {
+				"dest"     : "background_offset",
+				"type"     : "float",
+				"default"  : 0.0,
+				"help"     : "Value to shift background values by on the horizontal axis before normalization."
+			}
+		},
+		{
+			"names" : ["-xo", "--x-offsets"],
+			"spec"  : {
+				"dest"     : "x_offsets",
+				"nargs"    : "+",
+				"type"     : "float",
+				"default"  : [],
+				"help"     : "Value to shift datasets by on the x axis. These values will be applied to the datasets in alphabetical order."
+			}
+		},
+		{
+			"names" : ["-mn", "--manual-normalizations"],
+			"spec"  : {
+				"dest"     : "manual_normalizations",
+				"nargs"    : "+",
+				"type"     : "float",
+				"default"  : [],
+				"help"     : "Value to normalize each dataset by."
+			}
+		},
+		{
 			"names" : ["-PL", "--photoluminescence"],
 			"spec"  : {
 				"dest"     : "PL",
 				"action"   : "store_true",
 				"help"     : "Use PL units on the x-axis."
+			}
+		},
+		{
+			"names" : ["-NM", "--nanometers"],
+			"spec"  : {
+				"dest"     : "NM",
+				"action"   : "store_true",
+				"help"     : "Use nanometers for the x axis."
 			}
 		},
 		{
